@@ -80,4 +80,4 @@ Após colocar o nó **"Chamada à OpenWeather",** nos parâmetros em **"Credenti
 ❌ Cidade não encontrada. Use o formato Cidade,UF (ex.: São Paulo,SP).
 
 ### Link do Bot
-t.me/clima_cidades_bot
+[enter link description here](t.me/clima_cidades_bot)
