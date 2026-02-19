@@ -1,0 +1,332 @@
+{
+  "name": "Bot de Clima",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bbb60d11-263a-4a87-925f-09db88d44ab4",
+              "name": "cidade",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "356ddb6b-485f-4377-a891-75fc8675adfc",
+              "name": "temperatura",
+              "value": "={{ Math.round($json.main.temp)}}°C",
+              "type": "string"
+            },
+            {
+              "id": "035afa93-e0ef-4ef2-9fd0-36ab0bfcc3c4",
+              "name": "temperaturaCidade",
+              "value": "={{ $json.name }} - {{ Math.round($json.main.temp)}}°C\n",
+              "type": "string"
+            },
+            {
+              "id": "483f1a06-5c52-4457-b09e-e0242f074a3c",
+              "name": "código",
+              "value": "={{ $json.cod }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -16
+      ],
+      "id": "a0cee423-3a6f-4deb-a790-941bcbc5223f",
+      "name": "Extração e formatação dos dados"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28f865c9-3b5b-49eb-894e-2e0ed065920f",
+              "name": "=queue",
+              "value": "={{\n  $json.message.text\n    .trim()\n    .toLowerCase()\n    .replace(/\\s+/g, ' ')\n    .split(',')\n    .map((part, index) => {\n      if(index === 1) return part.trim().toUpperCase(); \n      return part\n        .trim()\n        .split(' ')\n        .map(word => {\n          const lowerWords = ['de','da','do','dos','das','e'];\n          if(lowerWords.includes(word)) return word;\n          return word.charAt(0).toUpperCase() + word.slice(1);\n        })\n        .join(' ');\n    })\n    .join(', ') \n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1088,
+        64
+      ],
+      "id": "fc004a2b-807f-4e4f-9461-8989bb6e84a6",
+      "name": "Captura e formatação da entrada"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b4bdd91-f25d-4a98-ad0c-252fdb64ecd4",
+              "leftValue": "={{ \n  ($json.queue.trim().split(',').map(p => p.trim()).length === 2 && /^[a-zA-Z]{2}$/.test($json.queue.trim().split(',')[1].trim())) ? 2 : 0 \n}}\n\n\n",
+              "rightValue": "=2",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -912,
+        64
+      ],
+      "id": "bb46d29c-535e-4722-991c-6fe7320e0ff4",
+      "name": "Cidade e UF"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "925edc3b-1bae-461a-939b-9e74389a03ab",
+              "leftValue": "={{ $json['código'] }}",
+              "rightValue": "=200",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -336,
+        48
+      ],
+      "id": "318bc31b-f41e-42e4-a2bd-3719fcd60cd6",
+      "name": "Validação da resposta"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=❌ Cidade não encontrada. Use o formato Cidade,UF (ex.: São Paulo,SP).",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -576,
+        224
+      ],
+      "id": "e9b9f945-2091-454d-8a0b-13948de1b262",
+      "name": "Mensagem de erro",
+      "webhookId": "02cc307e-7415-468f-9897-a3ed8c846da6",
+      "credentials": {
+        "telegramApi": {
+          "id": "A0NpWkPabWdiWPrK",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=🌤️ A temperatura em {{ $json.cidade }} é de {{ $json.temperatura }}.\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -128,
+        32
+      ],
+      "id": "82352627-6f19-4794-a2a8-677d4abcffff",
+      "name": "Mensagem de sucesso",
+      "webhookId": "18f9bfeb-7490-45c6-9b69-f5de03324a6b",
+      "credentials": {
+        "telegramApi": {
+          "id": "A0NpWkPabWdiWPrK",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1264,
+        64
+      ],
+      "id": "150628ff-9524-425f-9439-086cb1b25dc1",
+      "name": "Telegram Trigger",
+      "webhookId": "c70a5562-246f-4110-993c-63c0421ca431",
+      "credentials": {
+        "telegramApi": {
+          "id": "A0NpWkPabWdiWPrK",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.queue }},BR"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "21919d2b914e4fac8d1ed2b17abd82e1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -688,
+        -16
+      ],
+      "id": "20c20572-f09d-4f4f-aac4-4c3fa658fa8e",
+      "name": "Chamada à OpenWeather1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Captura e formatação da entrada": {
+      "main": [
+        [
+          {
+            "node": "Cidade e UF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extração e formatação dos dados": {
+      "main": [
+        [
+          {
+            "node": "Validação da resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cidade e UF": {
+      "main": [
+        [
+          {
+            "node": "Chamada à OpenWeather1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem de erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validação da resposta": {
+      "main": [
+        [
+          {
+            "node": "Mensagem de sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem de erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Captura e formatação da entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamada à OpenWeather1": {
+      "main": [
+        [
+          {
+            "node": "Extração e formatação dos dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a56d16bf-6f1f-4f06-a9a4-8906c42d5838",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c4f720f01ee55e83dfd8275f3ae9e77eac09d3104d1b112bdfacfaa33a059c58"
+  },
+  "id": "wiVAv3s3KKJFM86W",
+  "tags": []
+}
